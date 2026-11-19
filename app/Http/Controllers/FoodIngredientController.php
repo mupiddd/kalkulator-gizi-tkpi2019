@@ -23,17 +23,18 @@ class FoodIngredientController extends Controller
         $ingredients = FoodIngredient::orderBy('nama_bahan', 'asc')->get();
         $selected = FoodIngredient::findOrFail($request->ingredient_id);
         $beratInput = (float) $request->berat;
+        $bdd = $selected->bdd > 0 ? (float) $selected->bdd : 100.0;
 
         // Faktor pengali TKPI: (Berat (g) / 100) * (BDD (%) / 100)
-        $faktor = ($beratInput / 100) * ($selected->bdd / 100);
-        $beratDapatDimakan = $beratInput * ($selected->bdd / 100);
+        $faktor = ($beratInput / 100) * ($bdd / 100);
+        $beratDapatDimakan = $beratInput * ($bdd / 100);
 
         // Hasil perhitungan setiap zat gizi
         $hasil = [
             'nama_bahan' => $selected->nama_bahan,
             'kode_tkpi'  => $selected->kode_tkpi,
             'berat_awal' => $beratInput,
-            'bdd_persen' => $selected->bdd,
+            'bdd_persen' => $bdd,
             'berat_bdd'  => round($beratDapatDimakan, 2),
             'kalori'     => round($selected->kalori * $faktor, 2),
             // Pisahkan protein Hewani (h) dan Nabati (n)

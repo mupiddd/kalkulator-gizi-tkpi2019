@@ -36,12 +36,16 @@ class FoodIngredientSeeder extends Seeder
             $kategoriProtein = in_array($hurufDepan, ['F', 'G', 'H', 'J']) ? 'hewani' : 'nabati';
 
             $cleanNum = fn($val) => is_numeric(str_replace(',', '.', $val)) ? (float) str_replace(',', '.', $val) : 0;
+            $bdd = $cleanNum($row[2]);
+            if ($bdd <= 0) {
+                $bdd = 100;
+            }
 
             $batchData[] = [
                 'kode_tkpi'        => $kode,
                 'nama_bahan'       => trim($row[1]),
                 'kategori_protein' => $kategoriProtein,
-                'bdd'              => $cleanNum($row[2]),
+                'bdd'              => $bdd,
                 'air'              => $cleanNum($row[3]),
                 'kalori'           => $cleanNum($row[4]),
                 'protein'          => $cleanNum($row[5]),
