@@ -1,0 +1,8 @@
+/vendor
+/node_modules
+/.venv
+/database/*.sqlite
+/database/*.sqlite-journal
+/public/hot
+/storage/*.key
+.env
