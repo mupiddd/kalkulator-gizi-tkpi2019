@@ -6,7 +6,7 @@
         "node": "22.x"
     },
     "scripts": {
-        "build": "vite build && mkdir -p dist",
+        "build": "vite build && mkdir -p dist && cp -r public/* dist/",
         "dev": "vite"
     },
     "devDependencies": {
