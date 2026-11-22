@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FoodIngredient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Schema;
 
 class FoodIngredientController extends Controller
 {
@@ -14,7 +15,7 @@ class FoodIngredientController extends Controller
     private function getRomanticQuotes(): array
     {
         return [
-            "Dari 1.147 bahan makanan di tabel TKPI ini, cuma Nola satu-satunya yang bisa bikin hati Mufid kenyang bahagia setiap hari. ♥",
+            "Dari ribuan bahan makanan di tabel TKPI 2019 & 2020 ini, cuma Nola satu-satunya yang bisa bikin hati Mufid kenyang bahagia setiap hari. ♥",
             "Kalori mungkin yang memberi energi buat tubuh, tapi senyumnya Nola yang selalu jadi sumber energi terbesar buat hidup aku.",
             "Nola jangan lupa makan yang teratur dan bergizi yaa! Kesehatan kamu itu prioritas nomor satunya Mufid. ✨",
             "Kalau zat gizi dihitung pakai rumus BDD per 100 gram, rasa sayang aku ke Nola itu selalu 100% utuh tanpa ada yang terbuang sedikit pun.",
@@ -45,6 +46,13 @@ class FoodIngredientController extends Controller
         }
 
         return null;
+    }
+
+    private function resolveTahun(Request $request, string $default = '2020'): string
+    {
+        $input = (string) ($request->input('tahun') ?? $request->query('tahun', $default));
+
+        return in_array($input, ['2019', '2020'], true) ? $input : $default;
     }
 
     public function login(Request $request)
@@ -85,6 +93,7 @@ class FoodIngredientController extends Controller
         $currentUser = $this->getCurrentUser($request);
         $quotes = $this->getRomanticQuotes();
         $randomQuote = $quotes[array_rand($quotes)];
+        $tahun = $this->resolveTahun($request, '2020');
 
         if (! $currentUser) {
             return view('calculator', [
@@ -92,12 +101,22 @@ class FoodIngredientController extends Controller
                 'ingredients' => collect(),
                 'randomQuote' => '',
                 'quotes' => [],
+                'tahun' => $tahun,
             ]);
         }
 
-        $ingredients = FoodIngredient::orderBy('nama_bahan', 'asc')->get();
+        $query = FoodIngredient::orderBy('nama_bahan', 'asc');
+        if (Schema::hasColumn('food_ingredients', 'tahun')) {
+            $query->where('tahun', $tahun);
+        }
+        $ingredients = $query->get();
 
-        return view('calculator', compact('ingredients', 'currentUser', 'randomQuote', 'quotes'));
+        // Fallback jika tahun yang dipilih belum terisi di DB
+        if ($ingredients->isEmpty()) {
+            $ingredients = FoodIngredient::orderBy('nama_bahan', 'asc')->get();
+        }
+
+        return view('calculator', compact('ingredients', 'currentUser', 'randomQuote', 'quotes', 'tahun'));
     }
 
     public function calculate(Request $request)
@@ -107,29 +126,56 @@ class FoodIngredientController extends Controller
             return redirect()->route('calculator.index');
         }
 
+        $tahun = $this->resolveTahun($request, '2020');
+
         if (! $request->filled('ingredient_id') || ! $request->filled('berat')) {
-            return redirect()->route('calculator.index');
+            return redirect()->route('calculator.index', ['tahun' => $tahun]);
         }
 
         $request->validate([
             'ingredient_id' => 'required|exists:food_ingredients,id',
             'berat' => 'required|numeric|min:0.1',
+            'tahun' => 'nullable|in:2019,2020',
         ]);
 
         $quotes = $this->getRomanticQuotes();
         $randomQuote = $quotes[array_rand($quotes)];
 
-        $ingredients = FoodIngredient::orderBy('nama_bahan', 'asc')->get();
         $selected = FoodIngredient::findOrFail($request->ingredient_id);
+        $hasTahunCol = Schema::hasColumn('food_ingredients', 'tahun');
+
+        // Jika pengguna mengganti versi tahun (2019 <-> 2020), otomatis cocokkan kode_tkpi pada tahun tersebut
+        if ($hasTahunCol && ! empty($selected->tahun) && $selected->tahun !== $tahun) {
+            $matchedByCode = FoodIngredient::where('tahun', $tahun)
+                ->where('kode_tkpi', $selected->kode_tkpi)
+                ->first();
+
+            if ($matchedByCode) {
+                $selected = $matchedByCode;
+            } else {
+                $tahun = $selected->tahun;
+            }
+        } elseif ($hasTahunCol && ! empty($selected->tahun)) {
+            $tahun = $selected->tahun;
+        }
+
+        $query = FoodIngredient::orderBy('nama_bahan', 'asc');
+        if ($hasTahunCol) {
+            $query->where('tahun', $tahun);
+        }
+        $ingredients = $query->get();
+
         $beratInput = (float) $request->berat;
         $bdd = $selected->bdd > 0 ? (float) $selected->bdd : 100.0;
 
         // Faktor pengali TKPI: (Berat (g) / 100) * (BDD (%) / 100)
         $faktor = ($beratInput / 100) * ($bdd / 100);
         $beratDapatDimakan = $beratInput * ($bdd / 100);
+        $natriumAsli = (float) ($selected->natrium ?? 0);
 
-        // Hasil perhitungan setiap zat gizi
+        // Hasil perhitungan setiap zat gizi (15 parameter termasuk Natrium)
         $hasil = [
+            'tahun'      => $tahun,
             'nama_bahan' => $selected->nama_bahan,
             'kode_tkpi'  => $selected->kode_tkpi,
             'berat_awal' => $beratInput,
@@ -144,12 +190,13 @@ class FoodIngredientController extends Controller
             'ca'         => round($selected->ca * $faktor, 4), // 4 desimal karena dalam gram
             'p'          => round($selected->p * $faktor, 4),
             'fe'         => round($selected->fe * $faktor, 5),
+            'natrium'    => round($natriumAsli * $faktor, 2),  // miligram (mg)
             'vit_a'      => round($selected->vit_a * $faktor, 2),
             'vit_b1'     => round($selected->vit_b1 * $faktor, 3),
             'vit_c'      => round($selected->vit_c * $faktor, 2),
             'air'        => round($selected->air * $faktor, 2),
         ];
 
-        return view('calculator', compact('ingredients', 'hasil', 'selected', 'beratInput', 'currentUser', 'randomQuote', 'quotes'));
+        return view('calculator', compact('ingredients', 'hasil', 'selected', 'beratInput', 'currentUser', 'randomQuote', 'quotes', 'tahun'));
     }
 }

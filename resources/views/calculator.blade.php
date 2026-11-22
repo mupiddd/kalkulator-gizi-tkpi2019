@@ -303,7 +303,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="font-pixel-title text-base sm:text-lg font-bold text-[#1e1224]">{{ $currentUser ? 'NolaPixel' : 'PixelGizi' }}</span>
-                        <span class="text-xs font-pixel-ui bg-pink-500 text-white px-2 py-0.5 rounded-md border border-[#1e1224]">TKPI 2019</span>
+                        <span class="text-xs font-pixel-ui bg-pink-500 text-white px-2 py-0.5 rounded-md border border-[#1e1224]">TKPI 2019 &amp; 2020</span>
                     </div>
                     <p class="text-xs text-pink-700 font-medium">
                         {{ $currentUser ? 'Kalkulator Gizi Spesial untuk Nola ♥' : 'Kalkulator Gizi Bahan Makanan ♥' }}
@@ -314,7 +314,7 @@
             <!-- Center Cute Badges -->
             <div class="hidden md:flex items-center gap-2.5 text-xs font-pixel-ui">
                 <span class="px-3 py-1.5 rounded-full bg-pink-50 text-pink-700 border-2 border-pink-300 flex items-center gap-1.5">
-                    <span class="text-pink-500">♥</span> 1.147 Bahan Makanan
+                    <span class="text-pink-500">♥</span> Edisi Aktif: TKPI {{ $tahun ?? '2020' }} ({{ $ingredients->count() ?: 1146 }} Bahan)
                 </span>
                 <span class="px-3 py-1.5 rounded-full bg-pink-50 text-pink-700 border-2 border-pink-300 flex items-center gap-1.5">
                     <span class="text-pink-500">✦</span> Acuan Resmi Kemenkes RI
@@ -629,7 +629,7 @@
 
                     <!-- Card 1: Form Cari Bahan Makanan & Berat (Gaya Pixo Search Card) -->
                     <div class="pixel-card p-5 sm:p-6">
-                        <div class="flex items-center justify-between mb-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
                             <div class="flex items-center gap-2.5">
                                 <span class="w-8 h-8 rounded-lg bg-[#ff2e93] text-white border-2 border-[#1e1224] flex items-center justify-center font-pixel-title text-sm shadow-[2px_2px_0px_#1e1224]">
                                     ✦
@@ -638,18 +638,43 @@
                                     <h2 class="font-pixel-title text-sm sm:text-base font-bold text-[#1e1224]">
                                         Hitung Zat Gizi Makanan
                                     </h2>
-                                    <p class="text-xs text-slate-500">Pilih bahan pangan TKPI 2019 dan masukkan beratnya (gram)</p>
+                                    <p class="text-xs text-slate-500">Pilih versi acuan (TKPI 2019 / 2020), bahan pangan, dan beratnya (gram)</p>
                                 </div>
                             </div>
-                            <span class="hidden sm:inline-block font-pixel-ui text-xs bg-pink-100 text-pink-800 px-3 py-1 rounded-full border-2 border-pink-300 font-bold">
-                                ♥ Ready to Calculate
-                            </span>
+
+                            <!-- Quick Pixel Version Pill Switcher (Opsi A) -->
+                            <div class="inline-flex items-center bg-pink-50 border-2 border-[#1e1224] rounded-xl p-1 shadow-[2px_2px_0px_#f472b6]">
+                                <button
+                                    type="button"
+                                    data-switch-tahun="2019"
+                                    class="btn-tahun-pill px-3 py-1 rounded-lg text-xs font-pixel-ui font-bold transition {{ ($tahun ?? '2020') === '2019' ? 'bg-[#ff2e93] text-white border border-[#1e1224] shadow-[1px_1px_0px_#1e1224]' : 'text-pink-800 hover:bg-pink-100' }}"
+                                >
+                                    TKPI 2019
+                                </button>
+                                <button
+                                    type="button"
+                                    data-switch-tahun="2020"
+                                    class="btn-tahun-pill px-3 py-1 rounded-lg text-xs font-pixel-ui font-bold transition {{ ($tahun ?? '2020') === '2020' ? 'bg-[#ff2e93] text-white border border-[#1e1224] shadow-[1px_1px_0px_#1e1224]' : 'text-pink-800 hover:bg-pink-100' }}"
+                                >
+                                    TKPI 2020 ✦
+                                </button>
+                            </div>
                         </div>
 
-                        <form action="{{ route('calculator.calculate') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
-                            <div class="sm:col-span-6">
+                        <form id="calc-form" action="{{ route('calculator.calculate') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+                            <div class="sm:col-span-3">
+                                <label for="select-tahun" class="block text-xs font-pixel-ui uppercase tracking-wide font-bold text-pink-800 mb-1.5">
+                                    ★ Versi Acuan TKPI
+                                </label>
+                                <select id="select-tahun" name="tahun" class="pixel-input w-full font-bold text-sm cursor-pointer">
+                                    <option value="2020" {{ ($tahun ?? '2020') === '2020' ? 'selected' : '' }}>TKPI 2020 (Terbaru)</option>
+                                    <option value="2019" {{ ($tahun ?? '2020') === '2019' ? 'selected' : '' }}>TKPI 2019</option>
+                                </select>
+                            </div>
+
+                            <div class="sm:col-span-5">
                                 <label for="select-bahan" class="block text-xs font-pixel-ui uppercase tracking-wide font-bold text-pink-800 mb-1.5">
-                                    ♥ Cari &amp; Pilih Bahan Makanan
+                                    ♥ Cari &amp; Pilih Bahan Makanan (TKPI {{ $tahun ?? '2020' }})
                                 </label>
                                 <select id="select-bahan" name="ingredient_id" required placeholder="Ketik nama bahan atau kode TKPI...">
                                     <option value="">-- Ketik untuk mencari bahan --</option>
@@ -661,9 +686,9 @@
                                 </select>
                             </div>
 
-                            <div class="sm:col-span-3">
+                            <div class="sm:col-span-2">
                                 <label for="berat-input" class="block text-xs font-pixel-ui uppercase tracking-wide font-bold text-pink-800 mb-1.5">
-                                    ✦ Berat (gram)
+                                    ✦ Berat (g)
                                 </label>
                                 <input
                                     id="berat-input"
@@ -672,18 +697,18 @@
                                     min="0.1"
                                     name="berat"
                                     value="{{ $beratInput ?? '' }}"
-                                    placeholder="Contoh: 100"
+                                    placeholder="100"
                                     required
                                     class="pixel-input w-full font-semibold"
                                 >
                             </div>
 
-                            <div class="sm:col-span-3">
+                            <div class="sm:col-span-2">
                                 <button
                                     type="submit"
-                                    class="pixel-btn w-full min-h-[48px] bg-[#ff2e93] hover:bg-[#e01b7b] text-white font-pixel-ui font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-1.5"
+                                    class="pixel-btn w-full min-h-[48px] bg-[#ff2e93] hover:bg-[#e01b7b] text-white font-pixel-ui font-bold py-2.5 px-3 rounded-xl text-sm flex items-center justify-center gap-1"
                                 >
-                                    <span>Hitung Gizi</span>
+                                    <span>Hitung</span>
                                     <span>♥</span>
                                 </button>
                             </div>
@@ -697,9 +722,12 @@
                             <div class="bg-gradient-to-r from-pink-100 via-pink-50 to-white p-5 sm:p-6 border-b-3 border-[#1e1224]">
                                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
-                                        <div class="inline-flex items-center gap-2">
+                                        <div class="inline-flex flex-wrap items-center gap-2">
                                             <span class="text-xs font-pixel-title font-bold uppercase bg-[#ff2e93] text-white px-3 py-1 rounded-lg border-2 border-[#1e1224] shadow-[2px_2px_0px_#1e1224]">
                                                 KODE TKPI: {{ $hasil['kode_tkpi'] }}
+                                            </span>
+                                            <span class="text-xs font-pixel-ui font-bold uppercase bg-pink-600 text-white px-2.5 py-1 rounded-lg border-2 border-[#1e1224]">
+                                                EDISI TKPI {{ $hasil['tahun'] ?? ($selected->tahun ?? ($tahun ?? '2020')) }}
                                             </span>
                                             <span class="text-xs font-pixel-ui font-bold uppercase bg-white text-pink-700 px-2.5 py-1 rounded-lg border-2 border-pink-300">
                                                 Protein {{ ucfirst($selected->kategori_protein) }}
@@ -750,7 +778,7 @@
                             <div class="p-5 sm:p-6 bg-white">
                                 <div class="flex items-center justify-between mb-3">
                                     <h4 class="font-pixel-title text-xs sm:text-sm font-bold text-pink-800 uppercase">
-                                        ♥ Tabel Rincian Lengkap Zat Gizi (14 Parameter)
+                                        ♥ Tabel Rincian Lengkap Zat Gizi (15 Parameter • TKPI {{ $hasil['tahun'] ?? ($selected->tahun ?? ($tahun ?? '2020')) }})
                                     </h4>
                                     <span class="text-xs text-slate-400">Scroll ke bawah untuk detail lengkap</span>
                                 </div>
@@ -827,6 +855,12 @@
                                                 <td class="py-3 px-4 text-slate-400">{{ $selected->fe }} g</td>
                                             </tr>
                                             <tr>
+                                                <th scope="row" class="py-3 px-4 font-semibold text-[#1e1224]">Natrium (Na)</th>
+                                                <td class="py-3 px-4 font-bold text-[#1e1224]">{{ $hasil['natrium'] }}</td>
+                                                <td class="py-3 px-4">miligram</td>
+                                                <td class="py-3 px-4 text-slate-400">{{ $selected->natrium ?? 0 }} mg</td>
+                                            </tr>
+                                            <tr>
                                                 <th scope="row" class="py-3 px-4 font-semibold text-[#1e1224]">Vitamin A</th>
                                                 <td class="py-3 px-4 font-bold text-[#1e1224]">{{ $hasil['vit_a'] }}</td>
                                                 <td class="py-3 px-4">UI</td>
@@ -890,17 +924,17 @@
             <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-pixel-ui">
                 <div class="flex items-center gap-2">
                     <span>♥</span>
-                    <span>{{ $currentUser ? 'MADE WITH PIXEL LOVE BY MUFID ESPECIAL FOR NOLA' : 'MADE WITH PIXEL LOVE • TKPI 2019' }}</span>
+                    <span>{{ $currentUser ? 'MADE WITH PIXEL LOVE BY MUFID ESPECIAL FOR NOLA' : 'MADE WITH PIXEL LOVE • TKPI 2019 & 2020' }}</span>
                     <span>♥</span>
                 </div>
                 <div class="text-pink-100">
-                    Tabel Komposisi Pangan Indonesia (TKPI) 2019 • PostgreSQL Supabase
+                    Tabel Komposisi Pangan Indonesia (TKPI) 2019 &amp; 2020 • PostgreSQL Supabase
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Inisialisasi TomSelect & Tombol Acak Kata Romantis -->
+    <!-- Inisialisasi TomSelect, Switcher Versi TKPI & Tombol Acak Kata Romantis -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const selectEl = document.getElementById('select-bahan');
@@ -915,6 +949,36 @@
                     placeholder: 'Ketik nama bahan atau kode TKPI...'
                 });
             }
+
+            const calcForm = document.getElementById('calc-form');
+            const selectTahun = document.getElementById('select-tahun');
+            const beratInput = document.getElementById('berat-input');
+            const indexUrl = @json(route('calculator.index'));
+
+            function handleTahunSwitch(targetTahun) {
+                if (!selectTahun) return;
+                selectTahun.value = targetTahun;
+                if (calcForm && selectEl && selectEl.value && beratInput && beratInput.value) {
+                    calcForm.submit();
+                } else {
+                    window.location.href = indexUrl + '?tahun=' + encodeURIComponent(targetTahun);
+                }
+            }
+
+            if (selectTahun) {
+                selectTahun.addEventListener('change', function () {
+                    handleTahunSwitch(this.value);
+                });
+            }
+
+            document.querySelectorAll('.btn-tahun-pill').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const targetTahun = this.getAttribute('data-switch-tahun');
+                    if (targetTahun) {
+                        handleTahunSwitch(targetTahun);
+                    }
+                });
+            });
 
             const quotes = @json($quotes ?? []);
             const quoteEl = document.getElementById('romantic-quote-text');
